@@ -1,94 +1,72 @@
-import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js";
-const contractAddress="0xc3789961d436778599b2E25D5ced99BdFB7eA926";
+let contract;
+let signer;
+
+const contractAddress = "0xc3789961d436778599b2E25D5ced99BdFB7eA926";
+
 const abi = [
-  {
-    "inputs": [],
-    "stateMutability": "payable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "player",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "isWinner",
-        "type": "bool"
-      }
-    ],
-    "name": "GamePlayed",
-    "type": "event"
-  }
+    "function playGame(uint8 choice) payable",
+    "event GamePlayed(address player, bool isWinner, uint8 playerChoice, uint8 botChoice)"
 ];
-let signer = null;
-let contract = null;
-let provider = null;
-provider = new ethers.BrowserProvider(window.ethereum);
 
-async function init() {
-    provider= new ethers.BrowserProvider(window.ethereum);
+async function Init() {
+    const provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
-    const accounts = await provider.listAccounts();
-    signer= await provider.getSigner();
-    contract = new ethers.Contract(contractAddress, abi, signer);
-    console.log("Signer address:", await signer.getAddress());
-}
-async function play(side) {
-    let amountInWei=ethers.parseEther(("0.000001").toString());
-    console.log(amountInWei);
-    await contract.playGame(side, {value: amountInWei});
-}
-async function getGamePlayed() {
 
-    const blockNumber = await provider.getBlockNumber();
+    signer = await provider.getSigner();
+    contract = new ethers.Contract(contractAddress, abi, signer);
+}
+
+async function play(choice) {
+    try {
+        const amount = ethers.parseEther("0.000001");
+
+        const tx = await contract.playGame(choice, {
+            value: amount
+        });
+
+        document.getElementById("result").innerText = "⏳ Күте тұрыңыз...";
+
+        await tx.wait();
+
+        getResult();
+
+    } catch (err) {
+        console.log(err);
+        document.getElementById("result").innerText = "❌ Қате шықты";
+    }
+}
+
+function decodeChoice(num) {
+    if (num == 0) return "🪨 Камень";
+    if (num == 1) return "✂️ Ножницы";
+    if (num == 2) return "📄 Бумага";
+}
+
+async function getResult() {
+    const block = await signer.provider.getBlockNumber();
 
     const events = await contract.queryFilter(
         "GamePlayed",
-        blockNumber - 5000,
-        blockNumber
+        block - 5000,
+        block
     );
 
-    if (events.length === 0) {
-        document.getElementById("result").innerText = "Нет игр";
-        return;
-    }
+    const last = events[events.length - 1];
 
-    const lastEvent = events[events.length - 1];
+    const win = last.args.isWinner;
+    const playerChoice = last.args.playerChoice;
+    const botChoice = last.args.botChoice;
 
-    const player = lastEvent.args.player;
-    const isWinner = lastEvent.args.isWinner;
+    let text = win ? "🎉 ЖЕҢДІҢ!" : "😢 ЖЕҢІЛДІҢ!";
 
-    let resultText = `
-Игрок: ${player}
-Результат: ${isWinner ? "Вы выиграли 🎉" : "Вы проиграли ❌"}
-    `;
-
-    console.log(resultText);
-
-    document.getElementById("result").innerText = resultText;
+    document.getElementById("result").innerText =
+        "Сен: " + decodeChoice(playerChoice) +
+        " | Бот: " + decodeChoice(botChoice) +
+        "\n" + text;
 }
 
-
-async function setNote() {
-    const note = document.getElementById("InputNote").value;
-    const tx = await contract.setNote(note);
-    await tx.wait();
-    console.log("Note stored");
+async function startApp() {
+    await Init();
 }
-async function getNote() {
-    const note = await contract.getNote();
-    document.getElementById("result").textContent = note; }
 
-    async function startApp() {
-        await init();
-        document.getElementById("play0").addEventListener("click", () => play(0));
-        document.getElementById("play1").addEventListener("click", () => play(1));
-        document.getElementById("getGamePlayed").addEventListener("click", getGamePlayed);
-    }
-    startApp();
+startApp();
