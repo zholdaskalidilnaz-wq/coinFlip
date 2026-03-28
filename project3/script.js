@@ -1,30 +1,30 @@
 import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js";
 const contractAddress="0xc3789961d436778599b2E25D5ced99BdFB7eA926";
-const abi=[
-	{
-		"inputs": [],
-		"stateMutability": "payable",
-		"type": "constructor"
-	},
-	{
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": false,
-            "internalType": "address",
-            "name": "player",
-            "type": "address"
-          },
-          {
-            "indexed": false,
-            "internalType": "bool",
-            "name": "isWinner",
-            "type": "bool"
-          }
-        ],
-        "name": "GamePlayed",
+const abi = [
+  {
+    "inputs": [],
+    "stateMutability": "payable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isWinner",
+        "type": "bool"
       }
-
+    ],
+    "name": "GamePlayed",
+    "type": "event"
+  }
 ];
 let signer = null;
 let contract = null;
@@ -85,13 +85,10 @@ async function getNote() {
     const note = await contract.getNote();
     document.getElementById("result").textContent = note; }
 
-    document.getElementById("writeNote").addEventListener("click", setNote);
-    document.getElementById("getNote").addEventListener("click", getNote);
-    init().catch(console.error);
-
     async function startApp() {
         await init();
         document.getElementById("play0").addEventListener("click", () => play(0));
         document.getElementById("play1").addEventListener("click", () => play(1));
         document.getElementById("getGamePlayed").addEventListener("click", getGamePlayed);
     }
+    startApp();
